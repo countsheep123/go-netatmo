@@ -1,0 +1,3 @@
+# go-netatmo
+
+WIP
