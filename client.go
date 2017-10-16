@@ -1,8 +1,9 @@
 package netatmo
 
 import (
-	"encoding/json"
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -19,28 +20,30 @@ type Config struct {
 	Password     string
 	ClientID     string
 	ClientSecret string
-	Scopes []string
+	Scopes       []string
 }
 
 type Client struct {
 	httpClient *http.Client
+	token      string
 }
 
 func NewClient(cnf *Config) (*Client, error) {
 
-	httpClient, err := auth(cnf.Username, cnf.Password, cnf.ClientID, cnf.ClientSecret, cnf.Scopes)
+	httpClient, token, err := auth(cnf.Username, cnf.Password, cnf.ClientID, cnf.ClientSecret, cnf.Scopes)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Client{
 		httpClient: httpClient,
+		token:      token,
 	}, nil
 }
 
 // https://dev.netatmo.com/resources/technical/guides/authentication/clientcredentials
 // Resource Owner Password Credentials Grant
-func auth(username, password, clientID, clientSecret string, scopes []string) (*http.Client, error) {
+func auth(username, password, clientID, clientSecret string, scopes []string) (*http.Client, string, error) {
 	oauth := &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -53,15 +56,15 @@ func auth(username, password, clientID, clientSecret string, scopes []string) (*
 
 	token, err := oauth.PasswordCredentialsToken(context.TODO(), username, password)
 	if err != nil {
-		return nil, nil
+		return nil, "", nil
 	}
 
 	httpClient := oauth.Client(context.TODO(), token)
 
-	return httpClient, nil
+	return httpClient, token.AccessToken, nil
 }
 
-func (c *Client) get(u url.URL, v interface) error {
+func (c *Client) get(u url.URL, v interface{}) error {
 	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
 		return err
@@ -73,13 +76,13 @@ func (c *Client) get(u url.URL, v interface) error {
 	}
 	defer res.Body.Close()
 
-	switch res.StatusCode{
+	switch res.StatusCode {
 	case http.StatusOK:
 		if err := json.NewDecoder(res.Body).Decode(v); err != nil {
 			return err
 		}
 		return nil
 	default:
-		return fmt.Errof("invalid request: status_code = %d", res.StatusCode)
+		return fmt.Errorf("invalid request: status_code = %d", res.StatusCode)
 	}
 }
