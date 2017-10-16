@@ -64,7 +64,7 @@ func auth(username, password, clientID, clientSecret string, scopes []string) (*
 	return httpClient, token.AccessToken, nil
 }
 
-func (c *Client) get(u url.URL, v interface{}) error {
+func (c *Client) get(u *url.URL, v interface{}) error {
 	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
 		return err
