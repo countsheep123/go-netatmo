@@ -1,6 +1,7 @@
 package netatmo
 
 import (
+	"fmt"
 	"net/url"
 	"strconv"
 )
@@ -22,12 +23,18 @@ type DashboardData struct {
 }
 
 type Module struct {
-	// ID             *string `json:"_id,omitempty"`
-	// LastMessage    *int64  `json:"last_message,omitempty"`
-	// LastSeen       *int64  `json:"last_seen,omitempty"`
-	// BatteryVP      *int64  `json:"battery_vp,omitempty"`
-	// BatteryPercent *int64  `json:"battery_percent,omitempty"`
-	// RfStatus       *int64  `json:"rf_status,omitempty"`
+	ID             *string        `json:"_id,omitempty"`
+	Type           *string        `json:"type,omitempty"`
+	LastMessage    *int64         `json:"last_message,omitempty"`
+	LastSeen       *int64         `json:"last_seen,omitempty"`
+	DashboardData  *DashboardData `json:"dashboard_data,omitempty"`
+	DataType       []string       `json:"data_type,omitempty"` // Temperature, CO2, Humidity, Noise, Pressure
+	ModuleName     *string        `json:"module_name,omitempty"`
+	LastSetup      *int64         `json:"last_setup,omitempty"`
+	BatteryVP      *int64         `json:"battery_vp,omitempty"`
+	BatteryPercent *int64         `json:"battery_percent,omitempty"`
+	RfStatus       *int64         `json:"rf_status,omitempty"`
+	Firmware       *int64         `json:"firmware,omitempty"`
 }
 
 type Place struct {
@@ -82,10 +89,19 @@ type StationData struct {
 	TimeServer *int64   `json:"time_server,omitempty"`
 }
 
+type StationDataRequest struct {
+	DeviceID     *string
+	GetFavorites bool
+}
+
 // https://dev.netatmo.com/en-US/resources/technical/reference/weatherstation/getstationsdata
 // Returns data from a user Weather Stations (measures and device specific data)
 // scope: read_station
-func (c *Client) Getstationsdata(deviceID string, getFavorites bool) (*StationData, error) {
+func (c *Client) Getstationsdata(req *StationDataRequest) (*StationData, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+
 	u, err := url.Parse("https://api.netatmo.com/api/getstationsdata")
 	if err != nil {
 		return nil, err
@@ -93,10 +109,10 @@ func (c *Client) Getstationsdata(deviceID string, getFavorites bool) (*StationDa
 
 	queries := url.Values{}
 	queries.Add("access_token", c.token)
-	if len(deviceID) > 0 {
-		queries.Add("device_id", deviceID)
+	if req.DeviceID != nil {
+		queries.Add("device_id", *req.DeviceID)
 	}
-	queries.Add("get_favorites", strconv.FormatBool(getFavorites))
+	queries.Add("get_favorites", strconv.FormatBool(req.GetFavorites))
 
 	u.RawQuery = queries.Encode()
 
